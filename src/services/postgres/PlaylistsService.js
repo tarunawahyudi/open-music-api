@@ -76,6 +76,16 @@ class PlaylistsService {
       throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
     }
   }
+
+  async getSongsFromPlaylist(id) {
+    const query = {
+      text: 'SELECT * FROM playlists p INNER JOIN playlist_songs ps ON p.id=ps.playlist_id INNER JOIN songs s ON ps.song_id=s.id WHERE p.id = $1',
+      values: [id],
+    };
+
+    const result = await this._pool.query(query);
+    return result.rows;
+  }
 }
 
 module.exports = PlaylistsService;
