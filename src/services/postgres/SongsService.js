@@ -25,8 +25,13 @@ class SongsService {
         return result.rows[0].id;
     }
 
-    async getSongs() {
-        const result = await this._pool.query('SELECT * FROM songs');
+    async getSongsByQuery({ title = '', performer = '' }) {
+        const query = {
+            text: 'SELECT * FROM songs WHERE title ILIKE $1 AND performer ILIKE $2',
+            values: [`%${title}%`, `%${performer}%`],
+        };
+
+        const result = await this._pool.query(query);
         return result.rows.map(mapDBToModel);
     }
 
