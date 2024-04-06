@@ -10,54 +10,54 @@ const SongValidator = require('./validator/songs');
 const ClientError = require('./exceptions/ClientError');
 
 const init = async () => {
-    const albumsService = new AlbumsService();
-    const songService = new SongService();
+  const albumsService = new AlbumsService();
+  const songService = new SongService();
 
-    const server = Hapi.server({
-        port: process.env.PORT,
-        host: process.env.HOST,
-        routes: {
-            cors: {
-                origin: ['*'],
-            }
-        }
-    });
+  const server = Hapi.server({
+    port: process.env.PORT,
+    host: process.env.HOST,
+    routes: {
+      cors: {
+        origin: ['*'],
+      },
+    },
+  });
 
-    await server.register([
-        {
-            plugin: albums,
-            options: {
-                service: albumsService,
-                validator: AlbumsValidator,
-            }
-        },
-        {
-            plugin: songs,
-            options: {
-                service: songService,
-                validator: SongValidator,
-            }
-        }
-    ]);
+  await server.register([
+    {
+      plugin: albums,
+      options: {
+        service: albumsService,
+        validator: AlbumsValidator,
+      },
+    },
+    {
+      plugin: songs,
+      options: {
+        service: songService,
+        validator: SongValidator,
+      },
+    },
+  ]);
 
-    server.ext('onPreResponse', (request, h) => {
-        const { response } = request;
+  server.ext('onPreResponse', (request, h) => {
+    const { response } = request;
 
-        if (response instanceof ClientError) {
-            const newResponse = h.response({
-                status: 'fail',
-                message: response.message,
-            });
+    if (response instanceof ClientError) {
+      const newResponse = h.response({
+        status: 'fail',
+        message: response.message,
+      });
 
-            newResponse.code(response.statusCode);
-            return newResponse;
-        }
+      newResponse.code(response.statusCode);
+      return newResponse;
+    }
 
-        return h.continue;
-    })
+    return h.continue;
+  });
 
-    await server.start();
-    console.log(`server berjalan pada ${server.info.uri}`);
-}
+  await server.start();
+  console.log(`server berjalan pada ${server.info.uri}`);
+};
 
 init();
