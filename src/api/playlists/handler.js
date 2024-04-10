@@ -31,10 +31,12 @@ class PlaylistsHandler {
   async postSongToPlaylistHandler(request, h) {
     this._validator.validatePostSongToPlaylistPayload(request.payload);
 
-    const { songId } = request.payload;
-    await this._songService.verifySongIsAvailable(songId);
-
     const { id } = request.params;
+    const { songId } = request.payload;
+    const { id: credentialId } = request.auth.credentials;
+
+    await this._playlistService.verifyPlaylistOwner(id, credentialId);
+    await this._songService.verifySongIsAvailable(songId);
 
     await this._playlistService.addSongToPlaylist({ id, songId });
     const response = h.response({
