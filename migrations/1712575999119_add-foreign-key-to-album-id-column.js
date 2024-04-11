@@ -1,7 +1,3 @@
-/* eslint-disable camelcase */
-
-exports.shorthands = undefined;
-
 exports.up = (pgm) => {
   pgm.sql("INSERT INTO albums(id, name, year) VALUES ('old_album', 'old_album', 0000)");
   pgm.sql("UPDATE songs SET album_id = 'old_album' WHERE album_id IS NULL");
