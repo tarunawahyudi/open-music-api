@@ -2,6 +2,7 @@ const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
+const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class AlbumsService {
   constructor() {
@@ -89,6 +90,63 @@ class AlbumsService {
     const result = await this._pool.query(query);
     if (!result.rows.length) {
       throw new NotFoundError('album gagal dihapus. id tidak ditemukan');
+    }
+  }
+
+  async addLikeAlbum({ userId, albumId }) {
+    const id = `like-${nanoid(16)}`;
+    const query = {
+      text: 'INSERT INTO user_album_likes VALUES($1, $2, $3) RETURNING id',
+      values: [id, userId, albumId],
+    };
+
+    const result = await this._pool.query(query);
+    if (!result.rows[0].id) {
+      throw new InvariantError('like album gagal');
+    }
+  }
+
+  async getLikeAlbum(id) {
+    const query = {
+      text: 'SELECT COUNT(id) FROM user_album_likes WHERE album_id = $1',
+      values: [id],
+    };
+
+    const result = await this._pool.query(query);
+    if (!result.rows.length) {
+      throw new NotFoundError('Album tidak ditemukan');
+    }
+
+    console.log('GET LIKE ALBUMS: ', result.rows);
+    return result.rows;
+  }
+
+  async deleteLikeAlbum(id) {
+    const query = {
+      text: 'DELETE FROM user_album_likes WHERE id = $1 RETURNING id',
+      values: [id],
+    };
+
+    const result = await this._pool.query(query);
+    if (!result.rows.length) {
+      throw new NotFoundError('unlike album gagal');
+    }
+  }
+
+  async verifyLikeAlbum(userId, albumId) {
+    const query = {
+      text: 'SELECT * FROM user_album_likes WHERE user_id = $1 AND album_id = $2',
+      values: [userId, albumId],
+    };
+
+    const result = await this._pool.query(query);
+    if (!result.rows.length) {
+      throw new NotFoundError('Album tidak ditemukan');
+    }
+
+    const likes = result.rows[0];
+    if (likes.user_id !== userId) {
+      throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
     }
   }
 }
