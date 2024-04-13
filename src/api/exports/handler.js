@@ -2,7 +2,7 @@ class ExportsHandler {
   constructor(service, validator, playlistService) {
     this._service = service;
     this._validator = validator;
-    this._playlistServoce = playlistService;
+    this._playlistService = playlistService;
 
     this.postExportPlaylistHandler = this.postExportPlaylistHandler.bind(this);
   }
@@ -11,20 +11,23 @@ class ExportsHandler {
     this._validator.validateExportPlaylistsPayload(request.payload);
 
     const { playlistId } = request.params;
+    const { targetEmail } = request.payload;
+    const { id: credentialId } = request.auth.credentials;
+    await this._playlistService.verifyPlaylistOwner(playlistId, credentialId);
 
     const message = {
+      targetEmail,
       playlistId,
-      userId: request.auth.credentials.id,
-      targetEmail: request.payload.targetEmail,
     };
 
     await this._service.sendMessage('export:songs', JSON.stringify(message));
+
     const response = h.response({
       status: 'success',
       message: 'Permintaan anda dalam antrean',
     });
 
-    response.statusCode(201);
+    response.code(201);
     return response;
   }
 }
