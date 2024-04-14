@@ -90,7 +90,10 @@ class AlbumsHandler {
     const { id: userId } = request.auth.credentials;
     const { id: albumId } = request.params;
 
-    await this._service.verifyLikeAlbum();
+    Logger.log(`album id: ${albumId}`);
+    Logger.log(`user id: ${userId}`);
+
+    await this._service.verifyLikeAlbum(userId, albumId);
     await this._service.addLikeAlbum({ userId, albumId });
     Logger.log('like success save to database');
 
@@ -104,10 +107,12 @@ class AlbumsHandler {
   }
 
   async unlikeAlbumHandler(request, h) {
-    const { id } = request.params;
-    const { id: credentialId } = request.auth.credentials;
+    const { id: userId } = request.auth.credentials;
+    const { id: albumId } = request.params;
 
-    await this._service.deleteLikeAlbum(id);
+    await this._service.verifyUnlikeAlbum(userId, albumId);
+    await this._service.deleteLikeAlbum(userId, albumId);
+
     Logger.log('like success delete from database');
 
     const response = h.response({
@@ -121,7 +126,19 @@ class AlbumsHandler {
 
   async countLikeAlbumHandler(request, h) {
     const { id } = request.params;
-    const { id: credentialId } = request.auth.credentials;
+
+    const total = await this._service.getLikeAlbum(id);
+    Logger.log(`Total album ${total}`);
+
+    const response = h.response({
+      status: 'success',
+      data: {
+        likes: total,
+      },
+    });
+
+    response.code(200);
+    return response;
   }
 }
 

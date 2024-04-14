@@ -2,7 +2,6 @@ const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
-const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class AlbumsService {
   constructor() {
@@ -49,6 +48,7 @@ class AlbumsService {
       id: album.id,
       name: album.name,
       year: album.year,
+      coverUrl: album.cover ? `http://${process.env.HOST}:${process.env.PORT}/albums/images/${album.cover}` : null,
       songs: songs.map((song) => ({
         id: song.id,
         title: song.title,
@@ -117,14 +117,14 @@ class AlbumsService {
       throw new NotFoundError('Album tidak ditemukan');
     }
 
-    console.log('GET LIKE ALBUMS: ', result.rows);
-    return result.rows;
+    const total = result.rows[0].count;
+    return parseInt(total, 10);
   }
 
-  async deleteLikeAlbum(id) {
+  async deleteLikeAlbum(userId, albumId) {
     const query = {
-      text: 'DELETE FROM user_album_likes WHERE id = $1 RETURNING id',
-      values: [id],
+      text: 'DELETE FROM user_album_likes WHERE user_id = $1 AND album_id = $2 RETURNING id',
+      values: [userId, albumId],
     };
 
     const result = await this._pool.query(query);
@@ -133,7 +133,33 @@ class AlbumsService {
     }
   }
 
+  async isAvailableAlbum(id) {
+    const query = {
+      text: 'SELECT * FROM albums WHERE id = $1',
+      values: [id],
+    };
+
+    const result = await this._pool.query(query);
+    if (!result.rows.length) {
+      throw new NotFoundError('Album tidak ditemukan');
+    }
+  }
+
   async verifyLikeAlbum(userId, albumId) {
+    await this.isAvailableAlbum(albumId);
+    const query = {
+      text: 'SELECT * FROM user_album_likes WHERE user_id = $1 AND album_id = $2',
+      values: [userId, albumId],
+    };
+
+    const result = await this._pool.query(query);
+    if (result.rows.length) {
+      throw new InvariantError('Anda telah like album ini!');
+    }
+  }
+
+  async verifyUnlikeAlbum(userId, albumId) {
+    await this.isAvailableAlbum(albumId);
     const query = {
       text: 'SELECT * FROM user_album_likes WHERE user_id = $1 AND album_id = $2',
       values: [userId, albumId],
@@ -141,12 +167,7 @@ class AlbumsService {
 
     const result = await this._pool.query(query);
     if (!result.rows.length) {
-      throw new NotFoundError('Album tidak ditemukan');
-    }
-
-    const likes = result.rows[0];
-    if (likes.user_id !== userId) {
-      throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
+      throw new InvariantError('Anda belum like album ini!');
     }
   }
 }
