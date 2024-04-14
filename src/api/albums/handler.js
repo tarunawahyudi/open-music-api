@@ -127,7 +127,9 @@ class AlbumsHandler {
   async countLikeAlbumHandler(request, h) {
     const { id } = request.params;
 
-    const total = await this._service.getLikeAlbum(id);
+    const result = await this._service.getLikeAlbum(id);
+    const total = parseInt(result.total);
+
     Logger.log(`Total album ${total}`);
 
     const response = h.response({
@@ -136,6 +138,10 @@ class AlbumsHandler {
         likes: total,
       },
     });
+
+    if (result.cache != null) {
+      response.header('X-Data-Source', result.cache);
+    }
 
     response.code(200);
     return response;
